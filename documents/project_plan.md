@@ -6,11 +6,11 @@ This project is meant to be a small multiplayer game that runs primarily through
 
 ### Game Loop
 
-The game itself will be party fighting game. Each player will play as a small dodgeball who walks around and has a single attack where the dodgeball pulls out a metal pipe and whacks a neighboring dodgeball. 
+The game itself will be a party fighting game. Each player will play as a small dodgeball who walks around and has a single attack where the dodgeball pulls out a metal pipe and whacks a neighboring dodgeball. 
 
-Similarly to super smash bros the more you get hit, the more volatile your ball bounces around the stage. If the ball is hit it will bounce around the stage and whoever gets hit by the bouncing ball will lose points equal to the amount of points the bouncing dodgeball is worth. The game is not inherently team based, but it is designed to entice social contracts and strategies between players. 
+Similarly to super smash bros the more you get hit, the more volatile your ball bounces around the stage. If the ball is hit, it will bounce around the stage and whoever gets hit by the bouncing ball will lose points equal to the amount of points the bouncing dodgeball is worth. However, unlike super smash bros, the stages are confined within the screen. This means that a player's character will not go flying off the stage at any point, and if the dodge ball hits the edge of the map it will bounce off the edge much like any other collision detecting object. The game is not inherently team based, but it is designed to entice social contracts and strategies between players. 
 
-The game is turned based and the player to have the highest score by the end of all rounds wins. The number of rounds in a game will be decided by the host player before the game starts and a round consists of each of the players taking a turn moving and attacking.
+The game is turned based and the player who has the highest score by the end of all rounds wins. The number of rounds in a game will be decided by the host player before the game starts and a round consists of each of the players taking a turn moving and attacking.
 
 ## Project Goals:
 
