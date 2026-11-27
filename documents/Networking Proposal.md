@@ -1,6 +1,6 @@
 # Dodgeball! Networking Proposal — v1
 
-**Status: Approved v1 networking handoff with provisional implementation details.**
+**Status: Approved v1 networking handoff; SP-6 design gate finalized.**
 
 No networking or game code is implemented by this document.
 
@@ -132,4 +132,14 @@ The remaining implementation details are resolved provisionally in `documents/Im
 ## 5. Conflict check
 
 No approval blocker remains. The Architect and Engineer may tune provisional physics values during manual testing, while preserving the server authority, message contract, and stopping-point workflow.
+
+## 6. SP-6 artifact record
+
+The implementation-ready shared contract is finalized in:
+
+- `shared/protocol.md` — normative message, authority, lifecycle, disconnect, LAN, snapshot, and determinism rules.
+- `shared/protocol_schema.json` — machine-readable v1 message shapes and required fields.
+- `shared/protocol.py` — transport-free envelope checks for version, mandatory first `hello`, 16 KiB size, and strictly increasing gameplay sequences.
+
+SP-6 intentionally contains no WebSocket transport, HTTP serving, browser networking, or connection lifecycle implementation. Those begin only at SP-7 after explicit user approval.
 

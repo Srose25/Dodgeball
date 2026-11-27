@@ -111,7 +111,9 @@ Manual review:
 
 Stop condition: wait for user approval before networking.
 
-## SP-6 — Networking design gate (no code)
+## SP-6 — Networking design gate (no code) — COMPLETE
+
+Completion record: The approved networking handoff is finalized in `documents/Networking Proposal.md` and `documents/Implementation Decisions.md`. The shared contract is recorded in `shared/protocol.md`, `shared/protocol_schema.json`, and the transport-free checks in `shared/protocol.py`. No WebSocket, HTTP, browser-networking, or live transport code was implemented.
 
 Acceptance criteria:
 
@@ -124,7 +126,7 @@ Manual review:
 1. Review the final protocol examples and rejection cases.
 2. Confirm no networking implementation has started before approval.
 
-Stop condition: hard gate; transport remains deferred until SP-1 through SP-5 are complete and the recorded contracts are implemented.
+Stop condition: SP-6 design work is complete. SP-7 is the next gated milestone; transport remains deferred until the user explicitly approves beginning LAN implementation.
 
 ## SP-7 — LAN implementation and multi-client synchronization
 
@@ -148,6 +150,8 @@ Stop condition: wait for user approval before browser integration polish.
 
 ## SP-8 — Browser HUD and end-to-end handoff
 
+Status: COMPLETE for the planned v1 browser handoff. The Chrome client, display-only canvas/HUD, protocol input flow, connection states, static checks, and manual test guide are implemented in `client/` and `documents/SP-8 Manual Test Guide.md`. No SP-9 work is defined or started.
+
 Acceptance criteria:
 
 - Chrome desktop lobby supports server code creation/join flow.
@@ -163,7 +167,7 @@ Manual review:
 3. Verify HUD during active turn, round result, and match result.
 4. Resize the window and verify simulation behavior is unchanged.
 
-Stop condition: wait for user acceptance and handoff to QA.
+Stop condition: wait for user acceptance and QA handoff. Known v1 limitations remain: no reconnect, spectators, TLS/authentication, mobile layout, final art, or public-internet hosting.
 
 ## Change-control rule
 

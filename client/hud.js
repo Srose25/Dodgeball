@@ -1,0 +1,4 @@
+/** Update the compact HUD from server-owned snapshot data. */
+export function updateHud(snapshot,e){const ps=snapshot?.players||[];e.players.replaceChildren(...ps.map(p=>{const n=document.createElement('div');n.textContent=`${p.id}: ${p.damage??0}% damage / ${p.score??0} score`;n.style.color=p.color||'#e8edf4';return n}));const ticks=snapshot?.remaining_turn_ticks;e.timer.textContent=Number.isFinite(ticks)?`${Math.ceil(ticks/60)}s`:'--';e.round.textContent=snapshot?.round_number?`Round ${snapshot.round_number}`:'Round --'}
+/** Render a terminal match or connection message. */
+export function showResult(title,message,scores,e){e.title.textContent=title;e.message.textContent=message;e.scores.replaceChildren(...(scores||[]).map(s=>{const n=document.createElement('div');n.textContent=`${s.id}: ${s.score??0}`;n.style.color=s.color||'#e8edf4';return n}))}

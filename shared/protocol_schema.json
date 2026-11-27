@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dodgeball.local/schema/protocol-v1.json",
+  "title": "Dodgeball Protocol v1",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/hello" },
+    { "$ref": "#/$defs/create_lobby" },
+    { "$ref": "#/$defs/join_lobby" },
+    { "$ref": "#/$defs/ready" },
+    { "$ref": "#/$defs/host_config" },
+    { "$ref": "#/$defs/start_match" },
+    { "$ref": "#/$defs/move" },
+    { "$ref": "#/$defs/attack" },
+    { "$ref": "#/$defs/leave" },
+    { "$ref": "#/$defs/welcome" },
+    { "$ref": "#/$defs/lobby_state" },
+    { "$ref": "#/$defs/turn_started" },
+    { "$ref": "#/$defs/state_snapshot" },
+    { "$ref": "#/$defs/command_rejected" },
+    { "$ref": "#/$defs/round_result" },
+    { "$ref": "#/$defs/match_result" },
+    { "$ref": "#/$defs/host_disconnected" },
+    { "$ref": "#/$defs/error" }
+  ],
+  "$defs": {
+    "version": { "const": 1 },
+    "type": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "seq": { "type": "integer", "minimum": 0 },
+    "base": {
+      "type": "object",
+      "required": ["version", "type"],
+      "properties": { "version": { "$ref": "#/$defs/version" }, "type": { "$ref": "#/$defs/type" } },
+      "additionalProperties": true
+    },
+    "client_request": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        { "required": ["request_id"], "properties": { "request_id": { "$ref": "#/$defs/request_id" } } }
+      ]
+    },
+    "hello": {
+      "type": "object",
+      "required": ["version", "type", "request_id", "client_name"],
+      "properties": { "version": { "$ref": "#/$defs/version" }, "type": { "const": "hello" }, "request_id": { "$ref": "#/$defs/request_id" }, "client_name": { "type": "string", "minLength": 1, "maxLength": 32 } },
+      "additionalProperties": false
+    },
+    "create_lobby": { "allOf": [ { "$ref": "#/$defs/client_request" }, { "properties": { "type": { "const": "create_lobby" } } } ] },
+    "join_lobby": { "allOf": [ { "$ref": "#/$defs/client_request" }, { "required": ["join_code"], "properties": { "type": { "const": "join_lobby" }, "join_code": { "type": "string", "pattern": "^[A-Z0-9]{6}$" } } } ] },
+    "ready": { "allOf": [ { "$ref": "#/$defs/client_request" }, { "required": ["ready"], "properties": { "type": { "const": "ready" }, "ready": { "type": "boolean" } } } ] },
+    "host_config": { "allOf": [ { "$ref": "#/$defs/client_request" }, { "required": ["rounds", "turn_seconds"], "properties": { "type": { "const": "host_config" }, "rounds": { "type": "integer", "minimum": 1 }, "turn_seconds": { "enum": [30, 45, 60, 120] } } } ] },
+    "start_match": { "allOf": [ { "$ref": "#/$defs/client_request" }, { "properties": { "type": { "const": "start_match" } } } ] },
+    "move": { "allOf": [ { "$ref": "#/$defs/base" }, { "required": ["seq", "direction"], "properties": { "type": { "enum": ["move_start", "move_stop"] }, "seq": { "$ref": "#/$defs/seq" }, "direction": { "enum": ["left", "right"] } } } ] },
+    "attack": { "allOf": [ { "$ref": "#/$defs/base" }, { "required": ["seq"], "properties": { "type": { "const": "attack" }, "seq": { "$ref": "#/$defs/seq" } } } ] },
+    "leave": { "allOf": [ { "$ref": "#/$defs/client_request" }, { "properties": { "type": { "const": "leave" } } } ] },
+    "server_base": { "$ref": "#/$defs/base" },
+    "welcome": { "allOf": [ { "$ref": "#/$defs/base" }, { "required": ["request_id", "connection_id", "player_id", "is_host"], "properties": { "type": { "const": "welcome" }, "request_id": { "$ref": "#/$defs/request_id" }, "connection_id": { "type": "string", "minLength": 1 }, "player_id": { "type": "string", "minLength": 1 }, "is_host": { "type": "boolean" } } } ] },
+    "lobby_state": { "allOf": [ { "$ref": "#/$defs/base" }, { "required": ["type", "players", "host_id", "join_code"], "properties": { "type": { "const": "lobby_state" }, "players": { "type": "array" }, "host_id": { "type": "string" }, "join_code": { "type": "string", "pattern": "^[A-Z0-9]{6}$" } } } ] },
+    "turn_started": { "allOf": [ { "$ref": "#/$defs/base" }, { "required": ["type", "tick", "revision", "active_player_id", "end_tick"], "properties": { "type": { "const": "turn_started" }, "tick": { "type": "integer", "minimum": 0 }, "revision": { "type": "integer", "minimum": 0 }, "active_player_id": { "type": "string" }, "end_tick": { "type": "integer", "minimum": 0 } } } ] },
+    "state_snapshot": { "allOf": [ { "$ref": "#/$defs/base" }, { "required": ["type", "tick", "revision", "phase", "round_number", "active_player_id", "remaining_turn_ticks", "players", "balls"], "properties": { "type": { "const": "state_snapshot" }, "tick": { "type": "integer", "minimum": 0 }, "revision": { "type": "integer", "minimum": 0 }, "phase": { "type": "string" }, "round_number": { "type": "integer", "minimum": 1 }, "active_player_id": { "type": ["string", "null"] }, "remaining_turn_ticks": { "type": "integer", "minimum": 0 }, "players": { "type": "array" }, "balls": { "type": "array" } } } ] },
+    "command_rejected": { "allOf": [ { "$ref": "#/$defs/base" }, { "required": ["type", "code", "message"], "properties": { "type": { "const": "command_rejected" }, "code": { "type": "string" }, "message": { "type": "string" }, "request_id": { "$ref": "#/$defs/request_id" }, "seq": { "$ref": "#/$defs/seq" } } } ] },
+    "round_result": { "allOf": [ { "$ref": "#/$defs/base" }, { "required": ["type", "round_number", "winner_ids", "scores"], "properties": { "type": { "const": "round_result" }, "round_number": { "type": "integer", "minimum": 1 }, "winner_ids": { "type": "array", "items": { "type": "string" } }, "scores": { "type": "object" } } } ] },
+    "match_result": { "allOf": [ { "$ref": "#/$defs/base" }, { "required": ["type", "winner_ids", "result", "round_wins"], "properties": { "type": { "const": "match_result" }, "winner_ids": { "type": "array", "items": { "type": "string" } }, "result": { "enum": ["winner", "tie"] }, "round_wins": { "type": "object" } } } ] },
+    "host_disconnected": { "allOf": [ { "$ref": "#/$defs/base" }, { "required": ["type", "reason"], "properties": { "type": { "const": "host_disconnected" }, "reason": { "const": "host_disconnected" } } } ] },
+    "error": { "allOf": [ { "$ref": "#/$defs/base" }, { "required": ["type", "code", "message"], "properties": { "type": { "const": "error" }, "code": { "type": "string" }, "message": { "type": "string" } } } ] }
+  }
+}
