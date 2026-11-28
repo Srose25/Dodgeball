@@ -50,6 +50,23 @@ class ProtocolTests(unittest.TestCase):
 
         oversized = {"version": 1, "type": "hello", "request_id": "r1", "client_name": "x" * MAX_MESSAGE_BYTES}
         self.assertEqual(validate_message(oversized).code, "TOO_LARGE")
+
+    def test_client_messages_validate_required_fields_and_types(self) -> None:
+        """Malformed hello, lobby, setup, and gameplay messages are rejected."""
+
+        cases = (
+            ({"version": 1, "type": "hello", "request_id": "h"}, "MALFORMED"),
+            ({"version": 1, "type": "create_lobby"}, "MALFORMED"),
+            ({"version": 1, "type": "join_lobby", "request_id": "j", "join_code": "bad"}, "MALFORMED"),
+            ({"version": 1, "type": "ready", "request_id": "r", "ready": "yes"}, "MALFORMED"),
+            ({"version": 1, "type": "host_config", "request_id": "c", "rounds": 0, "turn_seconds": 60}, "MALFORMED"),
+            ({"version": 1, "type": "move_start", "seq": 1, "direction": "up"}, "MALFORMED"),
+        )
+        for message, code in cases:
+            with self.subTest(message=message):
+                result = validate_message(message)
+                self.assertFalse(result.accepted)
+                self.assertEqual(result.code, code)
         message = {"version": 1, "type": "attack", "seq": 4}
         self.assertTrue(validate_message(message, last_gameplay_seq=3).accepted)
         self.assertEqual(validate_message(message, last_gameplay_seq=4).code, "DUPLICATE_SEQ")

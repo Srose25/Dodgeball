@@ -2,9 +2,24 @@
 
 import argparse
 import asyncio
+import socket
 from pathlib import Path
 
 from .transport import GameServer, serve, static_process_request
+
+
+def detect_lan_ipv4() -> str | None:
+    """Detect a likely non-loopback IPv4 address without sending traffic."""
+
+    probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        probe.connect(("8.8.8.8", 80))
+        address = probe.getsockname()[0]
+        return address if not address.startswith("127.") else None
+    except OSError:
+        return None
+    finally:
+        probe.close()
 
 
 def choose_port(start: int = 8765, end: int = 8775) -> int:
@@ -25,6 +40,8 @@ def choose_port(start: int = 8765, end: int = 8775) -> int:
 async def run(host: str, port: int) -> None:
     """Run the authoritative LAN server until interrupted."""
 
+    if serve is None:
+        raise RuntimeError("websockets is required; install requirements.txt before starting the LAN server")
     game_server = GameServer(Path(__file__).parents[1] / "client")
 
     async def process_request(connection, request):
@@ -39,8 +56,14 @@ async def run(host: str, port: int) -> None:
         max_size=16 * 1024,
         process_request=process_request,
     ):
-        print(f"Dodgeball LAN server: http://{host}:{port}/")
-        print(f"WebSocket endpoint: ws://{host}:{port}/ws")
+        lan_ip = detect_lan_ipv4()
+        print(f"Dodgeball LAN server bound to {host}:{port}")
+        print(f"Open on this computer: http://localhost:{port}/")
+        if lan_ip:
+            print(f"Open from LAN clients: http://{lan_ip}:{port}/")
+        else:
+            print("LAN address: unable to detect automatically; use this computer's IPv4 address")
+        print(f"WebSocket path: /ws (derived from the page URL)")
         await asyncio.Future()
 
 

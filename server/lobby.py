@@ -97,7 +97,12 @@ class LobbyRuntime:
         while self._running:
             started = asyncio.get_running_loop().time()
             self.tick_once()
-            if self.simulation.state.tick % snapshot_every == 0:
+            # Lobby/setup state is delivered through ``lobby_state``. A
+            # gameplay snapshot before ACTIVE_TURN makes clients render a
+            # canvas before a match exists, so only publish snapshots for
+            # gameplay/result phases.
+            phase = self.simulation.state.phase.value
+            if phase in {"active_turn", "match_result"} and self.simulation.state.tick % snapshot_every == 0:
                 await self.broadcast(self.snapshot_message())
             elapsed = asyncio.get_running_loop().time() - started
             await asyncio.sleep(max(0.0, interval - elapsed))

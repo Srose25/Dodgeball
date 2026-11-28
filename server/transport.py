@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from pathlib import Path
 import uuid
 from typing import Any
@@ -22,11 +23,27 @@ try:
     from websockets.asyncio.server import ServerConnection, Server, serve
     from websockets.http11 import Headers, Response
 except ImportError:  # pragma: no cover - compatibility with older websockets releases.
-    from websockets.server import WebSocketServerProtocol as ServerConnection
-    from websockets.server import serve
-    Server = Any
-    Headers = None
-    Response = None
+    try:
+        from websockets.server import WebSocketServerProtocol as ServerConnection
+        from websockets.server import serve
+        Server = Any
+        Headers = None
+        Response = None
+    except ImportError:  # pragma: no cover - lets protocol/static tests run without extras installed.
+        ServerConnection = Any
+        serve = None
+        Server = Any
+        Headers = None
+        Response = None
+
+try:
+    from websockets.exceptions import ConnectionClosed
+except ImportError:  # pragma: no cover - only reached without the optional runtime dependency.
+    class ConnectionClosed(Exception):
+        """Fallback marker used when importing the server without websockets installed."""
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 COLORS = ("red", "blue", "green", "yellow")
@@ -52,29 +69,39 @@ class GameServer:
         self.sessions[connection_id] = session
         try:
             first = await websocket.recv()
-            message = self.decode(first)
+            try:
+                message = self.decode(first)
+            except (ValueError, UnicodeError, json.JSONDecodeError) as error:
+                await self.send_error(session, "MALFORMED", str(error))
+                return
             check = validate_message(message, first_message=True)
             if not check.accepted or message.get("type") != "hello":
                 await session.send(command_rejected_message(check.code, check.message))
                 return
             session.client_name = message["client_name"]
-            await session.send(
-                {
-                    "version": 1,
-                    "type": "welcome",
-                    "request_id": message["request_id"],
-                    "connection_id": connection_id,
-                    "player_id": session.player_id,
-                    "is_host": False,
-                }
-            )
             async for raw in websocket:
-                await self.handle_message(session, self.decode(raw))
+                try:
+                    decoded = self.decode(raw)
+                except (ValueError, UnicodeError, json.JSONDecodeError) as error:
+                    await self.send_error(session, "MALFORMED", str(error))
+                    continue
+                await self.handle_message(session, decoded)
+        except ConnectionClosed:
+            LOGGER.info("connection %s closed normally", connection_id)
         except Exception:
-            # Connection cleanup and terminal broadcasts are handled below.
-            pass
+            LOGGER.exception("unexpected transport error for connection %s", connection_id)
         finally:
             await self.disconnect(session)
+
+    @staticmethod
+    async def send_error(session: PlayerSession, code: str, message: str) -> None:
+        """Send a structured non-mutating transport error when possible."""
+
+        if session.send is not None and session.connected:
+            try:
+                await session.send({"version": 1, "type": "error", "code": code, "message": message})
+            except Exception:
+                LOGGER.debug("unable to send error for connection %s", session.connection_id, exc_info=True)
 
     @staticmethod
     def decode(raw: str | bytes) -> dict[str, Any]:
@@ -249,15 +276,26 @@ class GameServer:
     def lobby_state(lobby: LobbyRuntime) -> dict[str, Any]:
         """Serialize lobby roster and readiness."""
 
+        state = lobby.simulation.state
+        players = [
+            {"id": session.player_id, "name": session.client_name, "color": state.players[session.player_id].color, "ready": session.ready}
+            for session in lobby.sessions.values()
+        ]
+        all_ready = bool(players) and all(player["ready"] for player in players)
         return {
             "version": 1,
             "type": "lobby_state",
             "join_code": lobby.join_code,
-            "host_id": lobby.simulation.state.host_player_id or "",
-            "players": [
-                {"id": session.player_id, "name": session.client_name, "ready": session.ready}
-                for session in lobby.sessions.values()
-            ],
+            "phase": state.phase.value,
+            "host_id": state.host_player_id or "",
+            "players": players,
+            "player_count": len(players),
+            "connected_count": len(players),
+            "max_players": state.config.max_players,
+            "configured_rounds": state.configured_rounds,
+            "turn_seconds": state.turn_duration_seconds,
+            "all_ready": all_ready,
+            "can_start": state.phase.value == "setup" and all_ready,
         }
 
     def new_join_code(self) -> str:
@@ -283,7 +321,9 @@ async def static_process_request(connection: Any, request: Any, client_root: Pat
         reason = {200: "OK", 403: "Forbidden", 404: "Not Found"}.get(status, "Error")
         return Response(status, reason, response_headers, body)
 
-    path = getattr(request, "path", request if isinstance(request, str) else "/")
+    # websockets >=14 passes (connection, Request); websockets 13's legacy
+    # server passes (path, request_headers). Support both explicitly.
+    path = getattr(request, "path", connection if isinstance(connection, str) else "/")
     relative = path.split("?", 1)[0].lstrip("/") or "index.html"
     if relative == "ws":
         return None

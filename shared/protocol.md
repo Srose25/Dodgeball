@@ -44,7 +44,7 @@ All messages are JSON objects with:
 
 | Type | Required fields | Authority and behavior |
 |---|---|---|
-| `hello` | `version`, `type`, `request_id`, `client_name` | Must be first. Establishes protocol compatibility; server assigns identity. |
+| `hello` | `version`, `type`, `request_id`, `client_name` | Must be first. Establishes protocol compatibility; the definitive lobby identity is returned after `create_lobby` or `join_lobby`. |
 | `create_lobby` | `version`, `type`, `request_id` | Creates the lobby and makes this connection host. |
 | `join_lobby` | `version`, `type`, `request_id`, `join_code` | Joins a six-character uppercase alphanumeric LAN lobby; maximum four players. |
 | `ready` | `version`, `type`, `request_id`, `ready` | Changes only this player's readiness during setup. |
@@ -59,8 +59,8 @@ All messages are JSON objects with:
 
 | Type | Required fields | Purpose |
 |---|---|---|
-| `welcome` | `version`, `type`, `request_id`, `connection_id`, `player_id`, `is_host` | Confirms the server accepted `hello`. |
-| `lobby_state` | `version`, `type`, `players`, `host_id`, `join_code` | Current lobby/setup roster and readiness. |
+| `welcome` | `version`, `type`, `request_id`, `connection_id`, `player_id`, `is_host` | Definitive identity for the created or joined lobby; sent once per successful lobby action. |
+| `lobby_state` | `version`, `type`, `players`, `host_id`, `join_code`, `phase`, `connected_count`, `max_players`, `configured_rounds`, `turn_seconds`, `all_ready`, `can_start` | Authoritative lobby/setup roster, configuration, readiness, capacity, and start status. |
 | `turn_started` | `version`, `type`, `tick`, `revision`, `active_player_id`, `end_tick` | Immediate turn lifecycle event. |
 | `state_snapshot` | `version`, `type`, `tick`, `revision`, `phase`, `round_number`, `active_player_id`, `remaining_turn_ticks`, `players`, `balls` | Authoritative display state at 30 Hz. |
 | `command_rejected` | `version`, `type`, `code`, `message` | Non-mutating command rejection; may echo `request_id` or `seq`. |
